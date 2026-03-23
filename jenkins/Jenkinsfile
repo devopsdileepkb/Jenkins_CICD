@@ -24,12 +24,17 @@ pipeline {
                     . venv/bin/activate
                     pip install --upgrade pip
                     pip install -r src/requirements.txt
+                    pip install pytest
                     '''
     }
 }
         stage('Run Tests') {
             steps {
-                sh 'pytest tests/'
+                dir('src') {
+                    sh '''
+                    . venv/bin/activate
+                    pytest
+                    '''
             }
         }
         stage('Code Quality Scan') {
