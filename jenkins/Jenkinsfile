@@ -1,0 +1,86 @@
+pipeline {
+    agent any
+    environment {
+        REGISTRY = "123456789.dkr.ecr.ap-south-1.amazonaws.com"
+        IMAGE_NAME = "microdegree-app"
+        CLUSTER_NAME = "prod-eks-cluster"
+        AWS_REGION = "ap-south-1"
+    }
+    triggers {
+        githubPush()   // Git webhook trigger
+    }
+    stages {
+        stage('Checkout Code') {
+            steps {
+                git branch: 'main',
+                    credentialsId: 'git-credentials',
+                    url: 'https://github.com/your-org/microdegree-app.git'
+            }
+        }
+        stage('Build Application') {
+            steps {
+                sh 'pip install -r requirements.txt'
+            }
+        }
+        stage('Run Tests') {
+            steps {
+                sh 'pytest tests/'
+            }
+        }
+        stage('Code Quality Scan') {
+            environment {
+                SONAR_TOKEN = credentials('sonarqube-token')
+            }
+            steps {
+                sh '''
+                sonar-scanner \
+                  -Dsonar.projectKey=microdegree-app \
+                  -Dsonar.sources=. \
+                  -Dsonar.host.url=http://sonarqube:9000 \
+                  -Dsonar.login=$SONAR_TOKEN
+                '''
+            }
+        }
+        stage('Docker Build') {
+            steps {
+                sh 'docker build -t $IMAGE_NAME:$BUILD_NUMBER .'
+                sh 'docker tag $IMAGE_NAME:$BUILD_NUMBER $REGISTRY/$IMAGE_NAME:$BUILD_NUMBER'
+            }
+        }
+        stage('Security Scan Image') {
+            steps {
+                sh 'trivy image $REGISTRY/$IMAGE_NAME:$BUILD_NUMBER'
+            }
+        }
+        stage('Push to ECR') {
+            steps {
+                withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-creds']]) {
+                    sh '''
+                    aws ecr get-login-password --region $AWS_REGION | \
+                    docker login --username AWS --password-stdin $REGISTRY
+                    docker push $REGISTRY/$IMAGE_NAME:$BUILD_NUMBER
+                    '''
+                }
+            }
+        }
+        stage('Deploy to EKS') {
+            steps {
+                withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-creds']]) {
+                    sh '''
+                    aws eks update-kubeconfig --region $AWS_REGION --name $CLUSTER_NAME
+                    kubectl set image deployment/microdegree \
+                        app=$REGISTRY/$IMAGE_NAME:$BUILD_NUMBER
+                    '''
+                }
+            }
+        }
+    }
+    post {
+        success {
+            echo 'Deployment Successful ✅'
+        }
+        failure {
+            echo 'Pipeline Failed ❌'
+        }
+    }
+}

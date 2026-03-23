@@ -1,0 +1,19 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: secure-notes-app
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: secure-notes
+  template:
+    metadata:
+      labels:
+        app: secure-notes
+    spec:
+      containers:
+      - name: secure-notes
+        image: <your-dockerhub-username>/secure-notes-app:latest
+        ports:
+        - containerPort: 5000
