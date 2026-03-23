@@ -14,7 +14,7 @@ pipeline {
             steps {
                 git branch: 'main',
                     credentialsId: 'git-credentials',
-                    url: 'https://github.com/your-org/microdegree-app.git'
+                    url: 'url: 'https://github.com/devopsdileepkb/Jenkins_CICD.git''
             }
         }
         stage('Build Application') {
