@@ -14,7 +14,7 @@ pipeline {
             steps {
                 git branch: 'main',
                     credentialsId: 'git-credentials',
-                    url: 'url: 'https://github.com/devopsdileepkb/Jenkins_CICD.git''
+                    url: 'https://github.com/devopsdileepkb/Jenkins_CICD.git'
             }
         }
         stage('Build Application') {
