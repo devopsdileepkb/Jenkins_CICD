@@ -26,8 +26,8 @@ pipeline {
                     pip install -r src/requirements.txt
                     pip install pytest
                     '''
-    }
-}
+            }
+        }
         stage('Run Tests') {
             steps {
                 dir('src') {
